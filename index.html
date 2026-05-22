@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image to Prompt Machine</title>
+  <meta name="description" content="Upload gambar lalu ubah otomatis menjadi prompt image detail." />
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:rgba(255,255,255,.08);
+      --panel2:rgba(255,255,255,.12);
+      --text:#f8fafc;
+      --muted:#a8b3cf;
+      --line:rgba(255,255,255,.14);
+      --brand:#8b5cf6;
+      --brand2:#22d3ee;
+      --ok:#34d399;
+      --danger:#fb7185;
+      --radius:24px;
+      --shadow:0 24px 60px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(139,92,246,.25), transparent 22%),
+        radial-gradient(circle at 88% 14%, rgba(34,211,238,.18), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(236,72,153,.12), transparent 26%),
+        var(--bg);
+      min-height:100vh;
+    }
+    .wrap{
+      width:min(1100px, calc(100% - 24px));
+      margin:0 auto;
+      padding:18px 0 30px;
+    }
+    .hero, .card{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.07);
+      box-shadow:var(--shadow);
+      border-radius:var(--radius);
+      backdrop-filter:blur(16px);
+    }
+    .hero{
+      padding:24px;
+      margin-bottom:18px;
+    }
+    .badge{
+      display:inline-flex;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.09);
+      border:1px solid var(--line);
+      color:#dbeafe;
+      font-size:13px;
+      margin-bottom:14px;
+    }
+    h1{
+      margin:0;
+      font-size:clamp(30px, 6vw, 58px);
+      line-height:.96;
+      letter-spacing:-.06em;
+    }
+    .hero p{
+      color:var(--muted);
+      max-width:760px;
+      line-height:1.65;
+      margin:14px 0 0;
+      font-size:16px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) minmax(350px, .95fr);
+      gap:18px;
+      align-items:start;
+    }
+    .card h2{
+      margin:0;
+      padding:20px 20px 4px;
+      font-size:22px;
+      letter-spacing:-.03em;
+    }
+    .sub{
+      color:var(--muted);
+      padding:0 20px 0;
+      font-size:13px;
+      line-height:1.6;
+    }
+    .section{
+      padding:20px;
+      display:grid;
+      gap:14px;
+    }
+    label{
+      display:grid;
+      gap:8px;
+      font-size:13px;
+      font-weight:700;
+      color:#e6ebff;
+    }
+    textarea, select, input{
+      width:100%;
+      min-height:46px;
+      border:1px solid var(--line);
+      background:rgba(4,7,20,.55);
+      color:var(--text);
+      border-radius:16px;
+      padding:12px 13px;
+      font:inherit;
+      outline:none;
+      resize:vertical;
+    }
+    textarea:focus, select:focus, input:focus{
+      border-color:rgba(34,211,238,.55);
+      box-shadow:0 0 0 4px rgba(34,211,238,.12);
+    }
+    textarea{min-height:88px}
+    .drop{
+      border:1px dashed rgba(255,255,255,.26);
+      border-radius:18px;
+      background:rgba(255,255,255,.04);
+      padding:16px;
+      display:grid;
+      gap:10px;
+    }
+    .previewWrap{
+      display:none;
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:12px;
+      background:rgba(0,0,0,.18);
+    }
+    .preview{
+      display:block;
+      width:100%;
+      max-height:420px;
+      object-fit:contain;
+      border-radius:14px;
+      margin:0 auto;
+      background:rgba(0,0,0,.25);
+    }
+    .meta{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:12px;
+    }
+    .hint{font-size:12px;color:var(--muted);line-height:1.5}
+    .notice{
+      border:1px solid rgba(34,211,238,.24);
+      background:rgba(34,211,238,.08);
+      color:#d8fbff;
+      padding:12px 14px;
+      border-radius:16px;
+      line-height:1.55;
+      font-size:13px;
+    }
+    .error{
+      border-color:rgba(251,113,133,.36);
+      background:rgba(251,113,133,.12);
+      color:#ffe4e6;
+    }
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    button{
+      border:0;
+      border-radius:16px;
+      padding:12px 15px;
+      color:white;
+      font-weight:800;
+      font-size:15px;
+      cursor:pointer;
+      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      box-shadow:0 12px 30px rgba(34,211,238,.14);
+    }
+    button:hover{filter:brightness(1.05)}
+    button:disabled{opacity:.55; cursor:not-allowed}
+    .secondary{
+      background:rgba(255,255,255,.1);
+      box-shadow:none;
+      border:1px solid var(--line);
+    }
+    .danger{
+      background:rgba(251,113,133,.18);
+      box-shadow:none;
+      border:1px solid rgba(251,113,133,.32);
+    }
+    .score{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(0,0,0,.18);
+      padding:14px;
+      display:grid;
+      gap:10px;
+    }
+    .scoreTop{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:700;
+    }
+    .bar{
+      height:10px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;
+    }
+    .bar>div{
+      width:0;height:100%;border-radius:999px;
+      background:linear-gradient(90deg,var(--brand),var(--brand2),var(--ok));
+      transition:width .2s ease;
+    }
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      padding:0 20px 2px;
+    }
+    .tab{
+      padding:9px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.08);
+      color:var(--muted);
+      cursor:pointer;
+      font-size:12px;
+      font-weight:800;
+    }
+    .tab.active{
+      color:white;
+      background:rgba(139,92,246,.32);
+      border-color:rgba(139,92,246,.52);
+    }
+    .output{
+      min-height:480px;
+      white-space:pre-wrap;
+      word-break:break-word;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(4,7,20,.58);
+      padding:15px;
+      color:#eef2ff;
+      line-height:1.58;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:13px;
+      overflow:auto;
+    }
+    .small{font-size:12px; color:var(--muted); line-height:1.6}
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+      .meta{grid-template-columns:1fr}
+      .wrap{width:min(100% - 16px, 1100px); padding-top:12px}
+      .hero{padding:20px}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="badge">Image to Prompt Machine · Vercel Ready</div>
+      <h1>Upload gambar, lalu ubah jadi prompt image yang rapi.</h1>
+      <p>
+        Tool ini fokus untuk <b>image to prompt</b>. Kamu cukup upload gambar, pilih target model,
+        lalu AI akan menganalisis subjek, outfit, pose, komposisi, kamera, lighting, background, style,
+        serta menghasilkan prompt siap pakai.
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Input Gambar</h2>
+        <div class="sub">Upload 1 gambar. Catatan tambahan opsional kalau kamu mau prompt diarahkan ke model tertentu.</div>
+
+        <div class="section">
+          <div class="drop">
+            <label>
+              Pilih gambar
+              <input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp" />
+              <span class="hint">Wajib. Bisa anime art, karakter, foto, ilustrasi, atau reference image lainnya.</span>
+            </label>
+
+            <div id="previewWrap" class="previewWrap">
+              <img id="preview" class="preview" alt="Preview gambar" />
+            </div>
+
+            <div class="actions">
+              <button id="removeBtn" type="button" class="danger" style="display:none">Hapus gambar</button>
+            </div>
+          </div>
+
+          <div class="meta">
+            <label>
+              Target generator
+              <select id="engine">
+                <option value="General">General / universal</option>
+                <option value="Grok">Grok Imagine</option>
+                <option value="SDXL">Stable Diffusion XL</option>
+                <option value="Pony/Anime">Pony / Anime model</option>
+                <option value="Midjourney">Midjourney</option>
+                <option value="FLUX">FLUX</option>
+                <option value="DALL·E">DALL·E / GPT Image</option>
+              </select>
+            </label>
+
+            <label>
+              Bahasa output
+              <select id="language">
+                <option value="English">English</option>
+                <option value="Indonesian">Indonesia</option>
+                <option value="Both">English + Indonesia</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="meta">
+            <label>
+              Mode prompt
+              <select id="mode">
+                <option value="faithful">Faithful / semirip mungkin</option>
+                <option value="descriptive">Descriptive / detail maksimal</option>
+                <option value="tag">Tag style / booru-like</option>
+              </select>
+            </label>
+
+            <label>
+              Focus analysis
+              <select id="focus">
+                <option value="balanced">Balanced</option>
+                <option value="character">Character first</option>
+                <option value="outfit">Outfit first</option>
+                <option value="style">Style first</option>
+                <option value="scene">Scene first</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Catatan tambahan (opsional)
+            <textarea id="notes" placeholder="Contoh: fokus ke karakter, jangan terlalu panjang, tambahkan negative prompt yang kuat, atau sesuaikan untuk Grok / Pony."></textarea>
+            <span class="hint">Opsional. Boleh kosong kalau kamu cuma mau gambar dianalisis otomatis.</span>
+          </label>
+
+          <div class="score">
+            <div class="scoreTop">
+              <span>Readiness score</span>
+              <span id="scoreText">0%</span>
+            </div>
+            <div class="bar"><div id="scoreBar"></div></div>
+            <div class="small">Skor ini cuma menunjukkan kesiapan input image-to-prompt, bukan jaminan akurasi mutlak.</div>
+          </div>
+
+          <div class="actions">
+            <button id="generateBtn" type="button">Generate Image Prompt</button>
+            <button id="resetBtn" type="button" class="secondary">Reset</button>
+          </div>
+
+          <div id="status" class="notice">
+            Simpan API key di Vercel Environment Variables dengan nama <b>OPENAI_API_KEY</b>. Tidak perlu ditaruh di HTML.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Output</h2>
+        <div class="sub">Hasil bisa langsung dicopy ke generator image.</div>
+        <div class="tabs">
+          <button class="tab active" data-format="full" type="button">Full Prompt</button>
+          <button class="tab" data-format="short" type="button">Short</button>
+          <button class="tab" data-format="negative" type="button">Negative</button>
+          <button class="tab" data-format="lock" type="button">Reference Lock</button>
+        </div>
+
+        <div class="section">
+          <div class="actions">
+            <button id="copyBtn" type="button">Copy</button>
+            <button id="downloadBtn" type="button" class="secondary">Download .txt</button>
+          </div>
+          <pre id="output" class="output">Output prompt akan muncul di sini setelah kamu upload gambar lalu klik "Generate Image Prompt".</pre>
+          <div class="small">
+            Catatan: prompt hasil AI tetap bisa beda tipis antar model image generator. Untuk hasil paling mirip, gunakan model yang sama, seed tetap, dan reference image bila platform mendukung.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let imageDataUrl = "";
+    let activeFormat = "full";
+    let lastOutput = {
+      full: 'Output prompt akan muncul di sini setelah kamu upload gambar lalu klik "Generate Image Prompt".',
+      short: '',
+      negative: '',
+      lock: ''
+    };
+
+    function setStatus(message, isError = false) {
+      const el = $("status");
+      el.innerHTML = message;
+      el.className = "notice" + (isError ? " error" : "");
+    }
+
+    function setScore() {
+      let score = 0;
+      if (imageDataUrl) score += 75;
+      if ($("notes").value.trim().length > 4) score += 10;
+      if ($("engine").value) score += 5;
+      if ($("mode").value) score += 5;
+      if ($("focus").value) score += 5;
+      score = Math.min(100, score);
+      $("scoreText").textContent = score + "%";
+      $("scoreBar").style.width = score + "%";
+    }
+
+    $("notes").addEventListener("input", setScore);
+    $("engine").addEventListener("change", setScore);
+    $("mode").addEventListener("change", setScore);
+    $("focus").addEventListener("change", setScore);
+
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    $("imageFile").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const maxBytes = 4.5 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        setStatus("Ukuran gambar terlalu besar. Maksimal sekitar 4.5 MB.", true);
+        e.target.value = "";
+        return;
+      }
+
+      imageDataUrl = await fileToDataUrl(file);
+      $("preview").src = imageDataUrl;
+      $("previewWrap").style.display = "block";
+      $("removeBtn").style.display = "inline-flex";
+      setScore();
+    });
+
+    $("removeBtn").addEventListener("click", () => {
+      imageDataUrl = "";
+      $("imageFile").value = "";
+      $("preview").src = "";
+      $("previewWrap").style.display = "none";
+      $("removeBtn").style.display = "none";
+      setScore();
+    });
+
+    async function generatePrompt() {
+      if (!imageDataUrl) {
+        setStatus("Upload gambar dulu.", true);
+        return;
+      }
+
+      $("generateBtn").disabled = true;
+      setStatus("Menganalisis gambar dengan API...");
+
+      try {
+        const payload = {
+          imageDataUrl,
+          engine: $("engine").value,
+          language: $("language").value,
+          mode: $("mode").value,
+          focus: $("focus").value,
+          notes: $("notes").value.trim()
+        };
+
+        const res = await fetch("/api/generate-prompt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "API error.");
+
+        lastOutput = splitOutput(data.prompt || "");
+        renderOutput();
+        setStatus("Selesai. Prompt image-to-prompt berhasil dibuat.");
+      } catch (err) {
+        setStatus("Gagal generate prompt: " + err.message, true);
+      } finally {
+        $("generateBtn").disabled = false;
+      }
+    }
+
+    function splitOutput(text) {
+      const negativeMatch = text.match(/NEGATIVE PROMPT:?([\s\S]*?)(?:\n\n|$)/i);
+      const shortMatch = text.match(/SHORT VERSION:?([\s\S]*?)(?:\n\n|$)/i);
+      const lockMatch = text.match(/REFERENCE LOCK:?([\s\S]*?)(?:\n\n|$)/i);
+      return {
+        full: text || "Tidak ada output.",
+        short: shortMatch ? shortMatch[1].trim() : "",
+        negative: negativeMatch ? negativeMatch[1].trim() : "",
+        lock: lockMatch ? lockMatch[1].trim() : ""
+      };
+    }
+
+    function renderOutput() {
+      $("output").textContent = lastOutput[activeFormat] || lastOutput.full || "Tidak ada output.";
+    }
+
+    document.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeFormat = btn.dataset.format;
+        renderOutput();
+      });
+    });
+
+    $("generateBtn").addEventListener("click", generatePrompt);
+
+    $("copyBtn").addEventListener("click", async () => {
+      await navigator.clipboard.writeText($("output").textContent);
+      setStatus("Output berhasil dicopy.");
+    });
+
+    $("downloadBtn").addEventListener("click", () => {
+      const blob = new Blob([$("output").textContent], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "image-to-prompt.txt";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $("resetBtn").addEventListener("click", () => {
+      imageDataUrl = "";
+      $("imageFile").value = "";
+      $("preview").src = "";
+      $("previewWrap").style.display = "none";
+      $("removeBtn").style.display = "none";
+      $("notes").value = "";
+      $("engine").value = "General";
+      $("language").value = "English";
+      $("mode").value = "faithful";
+      $("focus").value = "balanced";
+      lastOutput = {
+        full: 'Output prompt akan muncul di sini setelah kamu upload gambar lalu klik "Generate Image Prompt".',
+        short: '',
+        negative: '',
+        lock: ''
+      };
+      activeFormat = "full";
+      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      document.querySelector('[data-format="full"]').classList.add("active");
+      renderOutput();
+      setStatus('Simpan API key di Vercel Environment Variables dengan nama <b>OPENAI_API_KEY</b>. Tidak perlu ditaruh di HTML.');
+      setScore();
+    });
+
+    setScore();
+  </script>
+</body>
+</html>
